@@ -21,6 +21,11 @@ float rad_left;
 int currentState_left;
 int lastState_left;
 String currentDir_left;
+int tNew_left;
+int tOld_left;
+int deltaT_left;
+
+
 
 int counter_right = 0;
 int oldCount_right = 0;
@@ -29,13 +34,29 @@ float rad_right;
 int currentState_right;
 int lastState_right;
 String currentDir_right;
+int tOld_right;
+int tNew_right;
+int deltaT_right;
+
 
 
 //// angular velocity
-//double thetaDot_left; 
-//double thetaDot_right;
+double thetaDot_left; 
+double thetaDot_right;
 
 bool flag = false;
+
+
+//if the motor shield has a fault it will tell the user
+void stopIfFault()
+{
+  if (md.getFault())
+  {
+    Serial.println("fault");
+    while(1);
+  }
+}
+
 
 //setup function
 void setup() {
@@ -46,7 +67,12 @@ void setup() {
   pinMode(dt_left, INPUT);
   pinMode(dt_right, INPUT);
 
-  
+  Serial.println("Dual MC33926 Motor Shield");
+  md.init();
+  tOld_left = millis();
+  tOld_right = millis();
+
+
   
   lastState_left = digitalRead(clk_left);
   lastState_right = digitalRead(clk_right);
@@ -60,17 +86,31 @@ void setup() {
 
 void loop() {
   if(flag == true){
+      Serial.print("LEFT: ");
       Serial.print(counter_left);
       Serial.print(" ");
       Serial.print(rad_left);
-      Serial.print("    ");
+      Serial.print(" ");
+      Serial.print(thetaDot_left);
+//      Serial.print(" ");
+//      Serial.print(thetaDot_left);
+      Serial.print("    RIGHT: ");
       Serial.print(counter_right);
       Serial.print(" ");
       Serial.print(rad_right);
+      Serial.print(" ");
+      Serial.print(thetaDot_right);
       Serial.println();
       flag = false;
-      delay(10);
   }
+  if(counter_left >=2400 && counter_right >=2400){
+    md.setM1Speed(0);
+    md.setM2Speed(0);
+  }else{
+    md.setM1Speed(200);
+    md.setM2Speed(-200);
+  }
+  
   
 }
 
@@ -83,22 +123,22 @@ void updateLeftEncoder(){
 
 
   if(currentState_left != lastState_left && currentState_left == 1){
-//    tNew = millis();
-//    deltaT = tNew - tOld;
-//    //thetadot is the angular velocity
-//    thetaDot = ((newCount-oldCount)*1000*2*3.1415)/((deltaT)*800);
+    tNew_left = millis();
+    deltaT_left = tNew_left - tOld_left;
+    //thetadot is the angular velocity
+    thetaDot_left = ((newCount_left-oldCount_left)*1000*2*3.1415)/((deltaT_left)*800);
     
     oldCount_left = counter_left;
     if(digitalRead(dt_left) != currentState_left){
-      counter_left ++;
+      counter_left --;
       currentDir_left = "CW";
     }else{
-      counter_left --;
+      counter_left ++;
       currentDir_left = "CCW";
     }
     rad_left = (counter_left*2*PI)/800;
     newCount_left=counter_left;
-//    tOld=millis();
+    tOld_left=millis();
     flag = true;
     
   }
@@ -113,22 +153,22 @@ void updateRightEncoder(){
 
 
   if(currentState_right != lastState_right && currentState_right == 1){
-//    tNew = millis();
-//    deltaT = tNew - tOld;
-//    //thetadot is the angular velocity
-//    thetaDot = ((newCount-oldCount)*1000*2*3.1415)/((deltaT)*800);
+    tNew_right = millis();
+    deltaT_right = tNew_right - tOld_right;
+    //thetadot is the angular velocity
+    thetaDot_right = ((newCount_right-oldCount_right)*1000*2*3.1415)/((deltaT_right)*800);
     
     oldCount_right = counter_right;
     if(digitalRead(dt_right) != currentState_right){
-      counter_right ++;
+      counter_right --;
       currentDir_right = "CW";
     }else{
-      counter_right --;
+      counter_right ++;
       currentDir_right = "CCW";
     }
     rad_right = (counter_right*2*PI)/800;
     newCount_right=counter_right;
-//    tOld=millis();
+    tOld_right=millis();
     flag = true;
     
   }
