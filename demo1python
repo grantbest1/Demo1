@@ -1,0 +1,65 @@
+from picamera.array import PiRGBArray
+from picamera import PiCamera
+import time
+import cv2
+import numpy as np
+import math
+while True:
+    camera = PiCamera()
+    rawCapture= PiRGBArray(camera)
+    camera.iso=100
+    time.sleep(2)
+    camera.shutter_speed = camera.exposure_speed
+    camera.exposure_mode = 'off'
+    gain = camera.awb_gains
+    camera.awb_mode = 'off'
+    camera.awb_gains = gain
+    time.sleep(0.1)
+    print("Capturing Image...")
+    try:
+        camera.capture(rawCapture, format="bgr")
+        image = rawCapture.array
+        camera.close()
+    except:
+        print("Failed to capture")
+
+    black_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    height = black_image.shape[0]
+    width = black_image.shape[1]
+    lowthresh = (110,0,0)
+    highthresh = (130,255,255)
+    split = cv2.split(black_image)
+    threshold = np.full((height,width),255, dtype= np.uint8)
+    windows = ["hue", "sat" , "intensity"]
+    for i in range(3):
+        _, lowimg = cv2.threshold(split[i], lowthresh[i], 255, cv2.THRESH_BINARY)
+        _, highimg = cv2.threshold(split[i], highthresh[i],255, cv2.THRESH_BINARY_INV)
+   
+        banded = cv2.bitwise_and(lowimg,highimg)
+        threshold = cv2.bitwise_and(threshold,banded)
+   
+    kernel = np.ones((5,5),np.uint8)
+    numobj, numlab, stats, centroids  = cv2.connectedComponentsWithStats(threshold)
+    thresh, newim = cv2.threshold(threshold, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+
+    shapedim = cv2.cvtColor(newim, cv2.COLOR_GRAY2BGR)
+    tapefound = False
+    for stat,centroids in zip(stats,centroids):
+        x = stat[cv2.CC_STAT_LEFT]
+        y = stat[cv2.CC_STAT_TOP]
+        width = stat[cv2.CC_STAT_WIDTH]
+        height = stat[cv2.CC_STAT_HEIGHT]
+   
+        if (stat[cv2.CC_STAT_AREA] > 250 and stat[cv2.CC_STAT_AREA] <15000):
+            shapedim = cv2.rectangle(shapedim, (x,y),(x+width,y+height),(0,0,255),1)
+            tapefound = True
+            cX,cY = centroids
+            angle = math.tan((height-((height/2)-cY))/((width/2)-cX))
+            angle = angle*(180/math.pi)
+    if tapefound == True:
+       #cv2.imshow("shape",shapedim)
+       #cv2.waitKey(2)
+       #print("Location is", x, " ", y,'/n')
+       #print("Angle is ", angle)
+    else:
+        print("No tapefound")
