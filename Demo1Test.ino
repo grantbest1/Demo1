@@ -57,8 +57,8 @@ int tOld_right;
 int tNew_right;
 int deltaT_right;
 
-float r = 0.25;
-float b = 0.91666;
+float r = 0.25; // radius of wheel as a fraction of one foot
+float b = 0.91666; // distance between wheels as a fraction of one foot
 
 //// angular velocity
 double thetaDot_left; 
@@ -130,7 +130,7 @@ void loop() {
       rhoDot = r*(thetaDot_left+thetaDot_right)/2;
       phiDot = r*(thetaDot_left-thetaDot_right)/b;
 //      Serial.print("LEFT: ");
-//      Serial.print(counter_left);
+      Serial.print(counter_left);
 ////      Serial.print(" ");
 ////      Serial.print(rhoDot);
 ////      Serial.print(" ");
@@ -140,7 +140,8 @@ void loop() {
 ////      Serial.print(" ");
 ////      Serial.print(x_DISTANCE);
 //      Serial.print("    RIGHT: ");
-//      Serial.print(counter_right);
+      Serial.print("     ");
+      Serial.println(counter_right);
 //      Serial.print(" ");
 //      Serial.print(deltaDistance_RIGHT);
 //      Serial.print(" ");  
@@ -150,10 +151,10 @@ void loop() {
 //      Serial.print(" ");
 //      Serial.print(y_DISTANCE);
 //      Serial.print("      ");
-      Serial.print(rhoDot);
+//      Serial.print(rhoDot);
 //      Serial.print(" ");
 //      Serial.print(phiDot);
-      Serial.println();
+//      Serial.println();
       flag = false;
       
   }
@@ -175,7 +176,7 @@ void updateLeftEncoder(){
   if(currentState_left != lastState_left && currentState_left == 1){
     tNew_left = millis();
     deltaT_left = (tNew_left - tOld_left);
-    deltaCount_left = newCount_left-oldCount_left;
+    deltaCount_left = newCount_left - oldCount_left;
     //thetadot is the angular velocity
     thetaDot_left = (deltaCount_left*1000*2*3.1415)/((deltaT_left)*800);
 
@@ -189,18 +190,17 @@ void updateLeftEncoder(){
 //    phi += (r/b)*(deltaDistance_LEFT - deltaDistance_RIGHT); // calculates the new angle from perfectly straight
     
     oldCount_left = counter_left;
-    
     if(digitalRead(dt_left) != currentState_left){
-      counter_left --;
-      currentDir_left = "CW";
-    }else{
-      
       counter_left ++;
       currentDir_left = "CCW";
+    }else{
+      
+      counter_left --;
+      currentDir_left = "CW";
     }
     rad_left = (counter_left*2*PI)/800;
-    newCount_left=counter_left;
-    tOld_left=millis();
+    newCount_left = counter_left;
+    tOld_left = millis();
     flag = true;
     
   }
@@ -230,16 +230,15 @@ void updateRightEncoder(){
 //      
     
     oldCount_right = counter_right;
-    
     if(digitalRead(dt_right) != currentState_right){
       counter_right --;
-      currentDir_right = "CW";
+      currentDir_right = "CCW";
     }else{
       counter_right ++;
-      currentDir_right = "CCW";
+      currentDir_right = "CW";
     }
     rad_right = (counter_right*2*PI)/800;
-    newCount_right=counter_right;
+    newCount_right = counter_right;
     tOld_right=millis();
     flag = true;
     
