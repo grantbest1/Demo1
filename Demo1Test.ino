@@ -141,7 +141,11 @@ void loop() {
 ////      Serial.print(x_DISTANCE);
 //      Serial.print("    RIGHT: ");
       Serial.print("     ");
-      Serial.println(counter_right);
+      Serial.print(counter_right);
+      Serial.print("     ");
+      Serial.print(phi);
+      Serial.print("    ");
+      Serial.println(phiDot);
 //      Serial.print(" ");
 //      Serial.print(deltaDistance_RIGHT);
 //      Serial.print(" ");  
@@ -180,14 +184,14 @@ void updateLeftEncoder(){
     //thetadot is the angular velocity
     thetaDot_left = (deltaCount_left*1000*2*3.1415)/((deltaT_left)*800);
 
-//    v_LEFT = thetaDot_left * r; // actual velocity of the left wheel is calculated
+    v_LEFT = thetaDot_left * r; // actual velocity of the left wheel is calculated
 
     
-//    deltaDistance_LEFT = v_LEFT * deltaT_left/1000; // the distance the left wheel travels per clicks
-//    totalDistance_left += deltaDistance_LEFT;
-//    x_DISTANCE += (cos(phi)*(deltaDistance_LEFT + deltaDistance_RIGHT))/2; // the full x distance the wheel travels
-//    y_DISTANCE += (sin(phi)*(deltaDistance_LEFT + deltaDistance_RIGHT))/2; // full y distance the wheel
-//    phi += (r/b)*(deltaDistance_LEFT - deltaDistance_RIGHT); // calculates the new angle from perfectly straight
+    deltaDistance_LEFT = v_LEFT * deltaT_left/1000; // the distance the left wheel travels per clicks
+    totalDistance_left += deltaDistance_LEFT;
+    x_DISTANCE += (cos(phi)*(deltaDistance_LEFT + deltaDistance_RIGHT))/2; // the full x distance the wheel travels
+    y_DISTANCE += (sin(phi)*(deltaDistance_LEFT + deltaDistance_RIGHT))/2; // full y distance the wheel
+    phi += (r/b)*(deltaDistance_LEFT - deltaDistance_RIGHT); // calculates the new angle from perfectly straight
     
     oldCount_left = counter_left;
     if(digitalRead(dt_left) != currentState_left){
@@ -219,15 +223,15 @@ void updateRightEncoder(){
     deltaT_right = tNew_right - tOld_right;
     deltaCount_right = newCount_right-oldCount_right;
     //thetadot is the angular velocity
-    thetaDot_right = (deltaCount_right*1000*2*3.1415)/((deltaT_right)*800);
+    thetaDot_right = (deltaCount_right*1000*2*PI)/((deltaT_right)*800);
 
-//    v_RIGHT = thetaDot_right * r;
-//    deltaDistance_RIGHT = v_RIGHT * deltaT_right/1000;
-//    totalDistance_right += deltaDistance_RIGHT;
-//    x_DISTANCE += (cos(phi)*(deltaDistance_LEFT + deltaDistance_RIGHT))/2; // the full x distance the wheel travels
-//    y_DISTANCE += (sin(phi)*(deltaDistance_LEFT + deltaDistance_RIGHT))/2; // full y distance the wheel
-//    phi += (r/b)*(deltaDistance_LEFT - deltaDistance_RIGHT); // calculates the new angle from perfectly straight
-//      
+    v_RIGHT = thetaDot_right * r;
+    deltaDistance_RIGHT = v_RIGHT * deltaT_right/1000;
+    totalDistance_right += deltaDistance_RIGHT;
+    x_DISTANCE += (cos(phi)*(deltaDistance_LEFT + deltaDistance_RIGHT))/2; // the full x distance the wheel travels
+    y_DISTANCE += (sin(phi)*(deltaDistance_LEFT + deltaDistance_RIGHT))/2; // full y distance the wheel
+    phi += (r/b)*(deltaDistance_LEFT - deltaDistance_RIGHT); // calculates the new angle from perfectly straight
+      
     
     oldCount_right = counter_right;
     if(digitalRead(dt_right) != currentState_right){
