@@ -3,16 +3,27 @@
 
 DualMC33926MotorShield md;
 
+//RIGHT MOTOR IS M1
+//LEFT MOTOR IS M2
+
 //defining pin numbers
 #define clk_left 2
 #define clk_right 3
-#define dt_left 4
-#define dt_right 5
+#define dt_left 5
+#define dt_right 6
 
 
 
 
 //variables
+float master_time;
+double tNew;
+double tOld;
+
+int moveFlag = 0;
+bool moving = false;
+
+
 //left variables
 int counter_left = 0;
 int oldCount_left = 0;
@@ -22,9 +33,9 @@ float rad_left;
 int currentState_left;
 int lastState_left;
 String currentDir_left;
-int tNew_left;
-int tOld_left;
-int deltaT_left;
+double tNew_left;
+double tOld_left;
+double deltaT_left;
 int speedM1 = 0;
 int speedM2 = 0;
 
@@ -39,10 +50,11 @@ double totalDistance_left;
 
 float x_DISTANCE = 0; //total x distance 
 float y_DISTANCE = 0; // total y distance 
-float phi = 0; // current angle from straight
+double phi = 0; // current angle from straight
 float rhoDot;
 float phiDot;
 
+float battery = 8.4;
 
 //right variables
 int counter_right = 0;
@@ -53,12 +65,19 @@ float rad_right;
 int currentState_right;
 int lastState_right;
 String currentDir_right;
-int tOld_right;
-int tNew_right;
-int deltaT_right;
+double tOld_right;
+double tNew_right;
+double deltaT_right;
+
+
+float fudge = 2.88;
 
 float r = 0.25; // radius of wheel as a fraction of one foot
 float b = 0.91666; // distance between wheels as a fraction of one foot
+
+
+float dist = 0;
+
 
 //// angular velocity
 double thetaDot_left; 
@@ -81,33 +100,13 @@ void stopIfFault()
 //setup function
 void setup() {
   //baud rate set to 250,000
-  Serial.begin(9600);
+  Serial.begin(115200);
   pinMode(clk_left, INPUT);
   pinMode(clk_right, INPUT);
   pinMode(dt_left, INPUT);
   pinMode(dt_right, INPUT);
 
   Serial.println("Dual MC33926 Motor Shield");
-  
-//    Serial.print("LEFT: ");
-//    Serial.print("counter_left");
-//    Serial.print(" ");
-//    Serial.print("rad_left");
-//    Serial.print(" ");
-//    Serial.print("thetaDot_left");
-//    Serial.print(" ");
-//    Serial.print("x_DISTANCE");
-//    Serial.print("    RIGHT: ");
-//    Serial.print("counter_right");
-//    Serial.print(" ");
-//    Serial.print("rad_right");
-//    Serial.print(" ");
-//    Serial.print("thetaDot_right");
-//    Serial.print(" ");
-//    Serial.print("y_DISTANCE");
-//    Serial.print("      ");
-//    Serial.print("phi");
-//  Serial.println();
   
   md.init();
   tOld_left = millis();
@@ -127,46 +126,60 @@ void setup() {
 
 void loop() {
   if(flag == true){
-      rhoDot = r*(thetaDot_left+thetaDot_right)/2;
-      phiDot = r*(thetaDot_left-thetaDot_right)/b;
-//      Serial.print("LEFT: ");
-      Serial.print(counter_left);
-////      Serial.print(" ");
-////      Serial.print(rhoDot);
-////      Serial.print(" ");
-////      Serial.print(totalDistance_left);
-////      Serial.print(" ");
-////      Serial.print(v_LEFT);
-////      Serial.print(" ");
-////      Serial.print(x_DISTANCE);
-//      Serial.print("    RIGHT: ");
-      Serial.print("     ");
+    tNew = micros();
+    master_time = (tNew - tOld);
+    dist = (counter_left + counter_right)*1.57/(2*800);
+    phi = float((-36.0*(counter_right))/(157.0));
       Serial.print(counter_right);
-      Serial.print("     ");
+      Serial.print(" ");
+      Serial.print(counter_left);
+      Serial.print(" ");
       Serial.print(phi);
-      Serial.print("    ");
-      Serial.println(phiDot);
-//      Serial.print(" ");
-//      Serial.print(deltaDistance_RIGHT);
-//      Serial.print(" ");  
-//      Serial.print(totalDistance_right);
-//      Serial.print(" ");
-//      Serial.print(v_RIGHT);
-//      Serial.print(" ");
-//      Serial.print(y_DISTANCE);
-//      Serial.print("      ");
-//      Serial.print(rhoDot);
-//      Serial.print(" ");
-//      Serial.print(phiDot);
-//      Serial.println();
+      Serial.print(" ");
+      Serial.print(moveFlag);
+      Serial.println();
       flag = false;
-      
+      tOld = micros();
+  }
+  if(moveFlag<=1000){
+  rotate(0);
+  }else if(moveFlag>=1000){
+    if(moving == false){
+      moving = true;
+      counter_left = 0;
+      counter_right = 0;
+    }
+    moveDistance(9);
   }
   
-  
-  
-  
-  
+}
+void rotate(float desAngle){
+  if(phi<desAngle+1 && phi>desAngle-1){
+    speedM1 = 0;
+    speedM2 = 0;
+    moveFlag++;
+  }else if(phi<desAngle){
+    speedM1 = -65;
+    speedM2 = 65;
+  }else if(phi>desAngle){
+    speedM1 = 65;
+    speedM2 = -65;
+  }
+    md.setM1Speed(speedM1);
+    md.setM2Speed(speedM2);
+}
+
+
+void moveDistance(float desDist){
+  if(dist<desDist){
+      speedM1=100;
+      speedM2=100;
+    md.setM1Speed(speedM1);
+    md.setM2Speed(speedM2);
+  }else{
+    md.setM1Speed(0);
+    md.setM2Speed(0);
+  }
 }
 
 
@@ -178,20 +191,13 @@ void updateLeftEncoder(){
 
 
   if(currentState_left != lastState_left && currentState_left == 1){
-    tNew_left = millis();
+    tNew_left = micros();
     deltaT_left = (tNew_left - tOld_left);
     deltaCount_left = newCount_left - oldCount_left;
     //thetadot is the angular velocity
-    thetaDot_left = (deltaCount_left*1000*2*3.1415)/((deltaT_left)*800);
-
-    v_LEFT = thetaDot_left * r; // actual velocity of the left wheel is calculated
+    thetaDot_left = (deltaCount_left*1000000*2*3.1415)/((deltaT_left)*800);
 
     
-    deltaDistance_LEFT = v_LEFT * deltaT_left/1000; // the distance the left wheel travels per clicks
-    totalDistance_left += deltaDistance_LEFT;
-    x_DISTANCE += (cos(phi)*(deltaDistance_LEFT + deltaDistance_RIGHT))/2; // the full x distance the wheel travels
-    y_DISTANCE += (sin(phi)*(deltaDistance_LEFT + deltaDistance_RIGHT))/2; // full y distance the wheel
-    phi += (r/b)*(deltaDistance_LEFT - deltaDistance_RIGHT); // calculates the new angle from perfectly straight
     
     oldCount_left = counter_left;
     if(digitalRead(dt_left) != currentState_left){
@@ -204,7 +210,7 @@ void updateLeftEncoder(){
     }
     rad_left = (counter_left*2*PI)/800;
     newCount_left = counter_left;
-    tOld_left = millis();
+    tOld_left = micros();
     flag = true;
     
   }
@@ -219,18 +225,11 @@ void updateRightEncoder(){
 
 
   if(currentState_right != lastState_right && currentState_right == 1){
-    tNew_right = millis();
+    tNew_right = micros();
     deltaT_right = tNew_right - tOld_right;
     deltaCount_right = newCount_right-oldCount_right;
     //thetadot is the angular velocity
     thetaDot_right = (deltaCount_right*1000*2*PI)/((deltaT_right)*800);
-
-    v_RIGHT = thetaDot_right * r;
-    deltaDistance_RIGHT = v_RIGHT * deltaT_right/1000;
-    totalDistance_right += deltaDistance_RIGHT;
-    x_DISTANCE += (cos(phi)*(deltaDistance_LEFT + deltaDistance_RIGHT))/2; // the full x distance the wheel travels
-    y_DISTANCE += (sin(phi)*(deltaDistance_LEFT + deltaDistance_RIGHT))/2; // full y distance the wheel
-    phi += (r/b)*(deltaDistance_LEFT - deltaDistance_RIGHT); // calculates the new angle from perfectly straight
       
     
     oldCount_right = counter_right;
@@ -243,7 +242,7 @@ void updateRightEncoder(){
     }
     rad_right = (counter_right*2*PI)/800;
     newCount_right = counter_right;
-    tOld_right=millis();
+    tOld_right=micros();
     flag = true;
     
   }
