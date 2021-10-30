@@ -1,4 +1,4 @@
-# MiniProject
+# Demo1 Final Project
 Included is the arduino code and raspberry pi code which follow the purpose
 
 Purpose:
